@@ -1,71 +1,120 @@
-const User = require('../models/user.model');
-const jwt = require('jsonwebtoken');
+import User from '../models/user.model.js'
+import jwt  from 'jsonwebtoken'
+import dotenv from  'dotenv'
 
-// Helper function to generate a JWT token
-const generateToken = (user) => {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: '1d', // Token valid for 1 day
-  });
-};
-// Controller for registering a new user
-exports.registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).send({ message: 'Email already exists' });
+dotenv.config()
+
+//generate a json web token
+
+const generateToken = (id) => {
+    return jwt.sign({id}, process.env.JWT_SECRET, {
+        expiresIn: '600s',
+    })
+}
+
+//Register a new user
+
+export const registerUser = async (req, res) => {
+    const {name, email, password, role} = req.body;
+
+    //check if user already exists
+    const userExists = await User.findOne({email});
+
+    if (userExists) {
+        return res.status(400).json({message: 'User already exists'})
     }
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
-    await newUser.save();
-    const token = generateToken(newUser);
-    res.send({ user: newUser, token });
-  } catch (error) {
-    res.status(500).send({ message: 'Error creating user' });
-  }
-};
+   //create a new user if the user does not exist
+    const user = await User.create({
+        name,
+        email,
+        password,
+        role
+    });
 
-
-
-// Controller for user login
-exports.loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Check if the user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if(user) {
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            token: generateToken(user._id)
+        })
+    } else {
+        res.status(400).json({message: 'Invalid user data'})
     }
+}
 
-    // Compare the provided password with the hashed password in the database
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+// User Login and generate token
+
+export const loginUser = async (req, res) => {
+    const {email, password} = req.body;
+    const user = await User.findOne({email});
+
+    if(user && (await user.matchPassword(password))) {
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            token: generateToken(user._id)
+        })  
+    } else {
+        res.status(401).json({message: 'Invalid email or password'})
     }
+}
 
-    // Generate a JWT token and return the user details and token
-    const token = generateToken(user);
+//get user profile
+
+export const getUserProfile = async (req, res) => {
+    const user = await User.findById(req.user._id);
+    if(user){
     res.json({
-      user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
-      },
-      token,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+        role: user.role
+    })
+   }
+   else {
+    res.status(404).json({message: 'User not found'})
+   }
+}
 
-// Controller to get the logged-in user's details
-exports.getUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+//get all users
+
+export const getUsers = async (req, res) => {
+    const users = await User.find({});
+    res.json(users)
+}
+
+//delete user
+
+export const deleteUser = async (req, res) => {
+    const user = await User.findById(req.params.id);
+    if(user) {
+        await user.remove();
+        res.json({message: 'User removed'})
+    } else {
+        res.status(404).json({message: 'User not found'})
+    }
+}
+
+//update user
+
+export const updateUser = async (req, res) => {
+    const user = await User.findById(req.params.id);
+    if(req.params.id === req.user.id || req.user.role === 'admin') {
+        user.name = req.body.name || user.name
+        user.email = req.body.email || user.email
+        user.role = req.body.role || user.role
+        const updatedUser = await user.save();
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role
+        })
+    } else {
+        res.status(404).json({message: 'User not found'})
+    }
+}

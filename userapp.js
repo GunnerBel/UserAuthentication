@@ -1,29 +1,17 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const userRoutes = require('./routes/user.route');
+import express from 'express'
+import dotenv from 'dotenv'
+import connectDB from './config/db.js'
+import userRoutes from './routes/user.route.js'
 
-// Load environment variables from .env file
-dotenv.config();
 
-// Initialize Express app
+dotenv.config()
+
+connectDB();
+
 const app = express();
-
-// Middleware to parse JSON requests
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
-// Use the user routes
 app.use('/api/users', userRoutes);
 
-// Define a default route
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
-
-// Start the server on the specified port
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`))   

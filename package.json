@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node userapp.js",
-    "dev": "nodemon userapp.js"
+   "start": "nodemon --exec babel-node src/userapp.js",
+    "buid": "babel src/ -d dist/"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,10 +17,11 @@
     "mongoose": "^7.2.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4",
     "@babel/cli": "^7.25.6",
     "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.4"
+    "@babel/node": "^7.25.0",
+    "@babel/preset-env": "^7.25.4",
+    "nodemon": "^3.1.4"
   },
   "keywords": [],
   "author": "",

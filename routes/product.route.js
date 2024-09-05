@@ -7,7 +7,6 @@ const router = express.Router()
 
 router.post('/createproduct', protect, role('admin'), createProduct)
 router.get('/products', getProducts)
-router.get('/product/:id')
 router.put('/updateproduct/:id', protect, role('admin'), updateProduct)
 router.delete('/deleteproduct/:id', protect, role('admin'), deleteProduct)
 
